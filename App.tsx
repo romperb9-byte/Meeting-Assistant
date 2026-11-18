@@ -15,6 +15,24 @@ import {
 } from './services/firebase';
 
 const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes in milliseconds
+const DOC_UNLOCK_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+const DOC_STORAGE_KEY = 'meeting_doc_unlocked_until';
+
+const checkDocUnlocked = (): boolean => {
+  try {
+    const stored = localStorage.getItem(DOC_STORAGE_KEY) || sessionStorage.getItem(DOC_STORAGE_KEY);
+    if (!stored) return false;
+    const until = parseInt(stored, 10);
+    if (Date.now() < until) {
+      return true;
+    }
+    localStorage.removeItem(DOC_STORAGE_KEY);
+    sessionStorage.removeItem(DOC_STORAGE_KEY);
+    return false;
+  } catch {
+    return false;
+  }
+};
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
@@ -24,13 +42,25 @@ const App: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDocMenu, setShowDocMenu] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isDocUnlocked, setIsDocUnlocked] = useState(false);
+  const [isDocUnlocked, setIsDocUnlocked] = useState<boolean>(() => checkDocUnlocked());
   const [showDocLockModal, setShowDocLockModal] = useState(false);
   const [docPasswordInput, setDocPasswordInput] = useState('');
   const [docPasswordError, setDocPasswordError] = useState('');
   const [pendingDocView, setPendingDocView] = useState<AppView | null>(null);
   const inactivityTimerRef = useRef<number | null>(null);
   const docMenuRef = useRef<HTMLDivElement>(null);
+
+  // Auto-lock document access after 1 hour (checks every 20 seconds)
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      const stillUnlocked = checkDocUnlocked();
+      if (!stillUnlocked && isDocUnlocked) {
+        setIsDocUnlocked(false);
+        setShowDocMenu(false);
+      }
+    }, 20000);
+    return () => window.clearInterval(interval);
+  }, [isDocUnlocked]);
 
   // Close doc menu when clicking outside
   useEffect(() => {
@@ -87,7 +117,6 @@ const App: React.FC = () => {
     setView(AppView.HOME);
     setShowShareModal(false);
     setShowDocMenu(false);
-    setIsDocUnlocked(false);
     setShowDocLockModal(false);
     setDocPasswordInput('');
     setDocPasswordError('');
@@ -95,23 +124,29 @@ const App: React.FC = () => {
   };
 
   const handleDocButtonClick = () => {
-    if (!isDocUnlocked) {
+    const stillUnlocked = checkDocUnlocked();
+    if (!stillUnlocked) {
+      setIsDocUnlocked(false);
       setDocPasswordInput('');
       setDocPasswordError('');
       setPendingDocView(null);
       setShowDocLockModal(true);
     } else {
+      setIsDocUnlocked(true);
       setShowDocMenu(prev => !prev);
     }
   };
 
   const handleDocSelectAttempt = (targetView: AppView) => {
-    if (!isDocUnlocked) {
+    const stillUnlocked = checkDocUnlocked();
+    if (!stillUnlocked) {
+      setIsDocUnlocked(false);
       setPendingDocView(targetView);
       setDocPasswordInput('');
       setDocPasswordError('');
       setShowDocLockModal(true);
     } else {
+      setIsDocUnlocked(true);
       setView(targetView);
       setShowDocMenu(false);
     }
@@ -120,6 +155,9 @@ const App: React.FC = () => {
   const handleVerifyDocPassword = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (docPasswordInput.trim() === '321') {
+      const until = Date.now() + DOC_UNLOCK_DURATION;
+      localStorage.setItem(DOC_STORAGE_KEY, until.toString());
+      sessionStorage.setItem(DOC_STORAGE_KEY, until.toString());
       setIsDocUnlocked(true);
       setShowDocLockModal(false);
       setDocPasswordError('');
@@ -130,7 +168,7 @@ const App: React.FC = () => {
         setShowDocMenu(true);
       }
     } else {
-      setDocPasswordError('លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ! (កូដត្រឹមត្រូវគឺ 321)');
+      setDocPasswordError('លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ! សូមព្យាយាមម្ដងទៀត។');
     }
   };
 
@@ -158,19 +196,22 @@ const App: React.FC = () => {
   const handleSelectGroup = (group: MeetingGroup) => {
     setSelectedGroup(group);
     setView(AppView.FORM);
-    setIsDocUnlocked(false); // Locked by default whenever entering a school
+    setIsDocUnlocked(checkDocUnlocked());
   };
 
   const handleViewChange = (newView: AppView) => {
     if (newView === AppView.HOME) {
       handleLogout();
     } else if ([AppView.MINUTES, AppView.REPORT, AppView.STRUCTURE].includes(newView)) {
-      if (!isDocUnlocked) {
+      const stillUnlocked = checkDocUnlocked();
+      if (!stillUnlocked) {
+        setIsDocUnlocked(false);
         setPendingDocView(newView);
         setDocPasswordInput('');
         setDocPasswordError('');
         setShowDocLockModal(true);
       } else {
+        setIsDocUnlocked(true);
         setView(newView);
       }
     } else {
@@ -233,7 +274,7 @@ const App: React.FC = () => {
                         ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
                         : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200'
                     }`}
-                    title={isDocUnlocked ? "ម៉ឺនុយឯកសាររដ្ឋបាល" : "ឯកសារ (ត្រូវដោះសោលេខកូដ 321)"}
+                    title={isDocUnlocked ? "ម៉ឺនុយឯកសាររដ្ឋបាល" : "ឯកសារ (ជាប់សោរ)"}
                   >
                     {!isDocUnlocked ? (
                       <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,8 +287,8 @@ const App: React.FC = () => {
                     )}
                     <span>ឯកសារ</span>
                     {!isDocUnlocked ? (
-                      <span className="text-[10px] bg-amber-200/80 text-amber-900 px-1.5 py-0.2 rounded font-mono font-extrabold flex items-center gap-0.5">
-                        🔒 321
+                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold">
+                        🔒
                       </span>
                     ) : (
                       <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showDocMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,12 +563,6 @@ const App: React.FC = () => {
         <Navigation 
           activeView={view} 
           onViewChange={handleViewChange} 
-          isDocUnlocked={isDocUnlocked}
-          onDocUnlockRequest={() => {
-            setDocPasswordInput('');
-            setDocPasswordError('');
-            setShowDocLockModal(true);
-          }}
         />
       )}
     </div>
