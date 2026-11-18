@@ -23,7 +23,8 @@ export enum AppView {
   FORM = 'FORM',
   LIST = 'LIST',
   MINUTES = 'MINUTES',
-  REPORT = 'REPORT'
+  REPORT = 'REPORT',
+  STRUCTURE = 'STRUCTURE'
 }
 
 export interface MinutesData {
@@ -68,4 +69,25 @@ export interface ReportData {
   solutions: string;
   suggestions: string;
   photos: string[];
+}
+
+export interface StructureMember {
+  id: string;
+  name: string;
+  role: string; // e.g. ប្រធាន, អនុប្រធាន, សមាជិក, លេខាធិការ, បេឡាធិកា
+  originalPosition?: string; // e.g. នាយកសាលា, មេភូមិ, គ្រូបង្រៀន
+  phone?: string;
+  photo?: string;
+  level: 'leader' | 'deputy' | 'member';
+}
+
+export interface StructureData {
+  title: string;
+  institution: string;
+  department: string;
+  district: string;
+  province: string;
+  academicYear: string;
+  referenceDecision?: string;
+  members: StructureMember[];
 }

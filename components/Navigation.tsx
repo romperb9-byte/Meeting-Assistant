@@ -8,7 +8,7 @@ interface Props {
 
 const Navigation: React.FC<Props> = ({ activeView, onViewChange }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-2 py-1.5 shadow-2xl z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-1 sm:px-2 py-1.5 shadow-2xl z-50">
       <div className="max-w-2xl mx-auto flex justify-between items-center h-14">
         {/* Home Button */}
         <button
@@ -73,6 +73,19 @@ const Navigation: React.FC<Props> = ({ activeView, onViewChange }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <span className="text-[9px] sm:text-[10px] font-bold mt-1">របាយការណ៍</span>
+        </button>
+
+        {/* 5. Structure - រចនាសម្ព័ន្ធ */}
+        <button
+          onClick={() => onViewChange(AppView.STRUCTURE)}
+          className={`flex flex-col items-center flex-1 transition-all ${
+            activeView === AppView.STRUCTURE ? 'text-indigo-600 font-extrabold scale-105' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <span className="text-[9px] sm:text-[10px] font-bold mt-1">រចនាសម្ព័ន្ធ</span>
         </button>
       </div>
     </nav>

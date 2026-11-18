@@ -6,6 +6,7 @@ import AttendanceList from './components/AttendanceList';
 import Navigation from './components/Navigation';
 import MinutesGenerator from './components/MinutesGenerator';
 import ReportGenerator from './components/ReportGenerator';
+import StructureGenerator from './components/StructureGenerator';
 import GroupList from './components/GroupList';
 import { 
   subscribeToRecords, 
@@ -252,6 +253,9 @@ const App: React.FC = () => {
             )}
             {view === AppView.REPORT && (
               <ReportGenerator records={records} />
+            )}
+            {view === AppView.STRUCTURE && (
+              <StructureGenerator records={records} selectedGroup={selectedGroup} />
             )}
           </div>
         )}
