@@ -1,6 +1,6 @@
-
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { AttendanceRecord } from '../types';
+import { exportElementToPdf } from '../services/pdfExport';
 
 interface Props {
   records: AttendanceRecord[];
@@ -9,8 +9,30 @@ interface Props {
 }
 
 const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const printContainerRef = useRef<HTMLDivElement>(null);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!printContainerRef.current) return;
+    setIsExportingPdf(true);
+    try {
+      const dateStr = new Date().toLocaleDateString('km-KH').replace(/\//g, '-');
+      await exportElementToPdf({
+        element: printContainerRef.current,
+        filename: `បញ្ជីវត្តមាន_${dateStr}.pdf`,
+        orientation: 'landscape',
+        marginMm: 8,
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('មានបញ្ហាក្នុងការទាញយកជា PDF');
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const handleDownloadWord = () => {
@@ -179,6 +201,13 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearWithConfirm = () => {
+    if (window.confirm("តើអ្នកពិតជាចង់លុបទិន្នន័យវត្តមានទាំងអស់ក្នុងក្រុមនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់ក្រោយបានឡើយ។")) {
+      onClear();
+    }
   };
 
   const femaleCount = records.filter(r => r.gender.includes('ស្រី') || r.gender.toLowerCase() === 'f' || r.gender.toLowerCase() === 'female').length;
@@ -186,37 +215,64 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden print:shadow-none print:border-none print:p-0">
       <div className="p-6 md:p-10 print:p-0">
-        <div className="flex justify-between items-center mb-12 print:hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 print:hidden">
           <div>
-              <h2 className="khmer-moul text-blue-900 text-xl">
-                បញ្ជីវត្តមានសរុប
-              </h2>
-              <p className="text-gray-400 text-sm">ចំនួនអ្នកចូលរួម៖ {records.length} នាក់</p>
+            <h2 className="khmer-moul text-blue-900 text-xl">
+              បញ្ជីវត្តមានសរុប
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">ចំនួនអ្នកចូលរួមសរុប៖ <span className="font-bold text-gray-700">{records.length}</span> នាក់ (ស្រី <span className="font-bold text-gray-700">{femaleCount}</span> នាក់)</p>
           </div>
+          
           <div className="flex flex-wrap items-center gap-2">
             {records.length > 0 && (
               <>
+                {/* PDF Download Button */}
+                <button 
+                  onClick={handleDownloadPdf}
+                  disabled={isExportingPdf}
+                  className="flex items-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-rose-200 transition-all active:scale-95"
+                  title="ទាញយកជាឯកសារ PDF ស្អាតស្ដង់ដារ A4 Landscape"
+                >
+                  {isExportingPdf ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9h1m0 4h6m-6 4h6" />
+                    </svg>
+                  )}
+                  <span>{isExportingPdf ? "កំពុងបង្កើត PDF..." : "ទាញយកជា PDF (.pdf)"}</span>
+                </button>
+
+                {/* Word Download Button */}
                 <button 
                   onClick={handleDownloadWord}
-                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all active:scale-95"
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-blue-200 transition-all active:scale-95"
+                  title="ទាញយកជា Microsoft Word"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <span>ទាញយកជា Word (.doc)</span>
                 </button>
+
+                {/* Print Button */}
                 <button 
                   onClick={handlePrint}
-                  className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm"
+                  className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"
+                  title="បោះពុម្ពឯកសារ"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                   </svg>
                   <span>បោះពុម្ព</span>
                 </button>
+
+                {/* Clear All Button */}
                 <button 
-                  onClick={onClear}
-                  className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors px-4"
+                  onClick={handleClearWithConfirm}
+                  className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors px-3 py-2 rounded-xl hover:bg-red-50"
+                  title="លុបវត្តមានទាំងអស់"
                 >
                   លុបទាំងអស់
                 </button>
@@ -225,7 +281,8 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
           </div>
         </div>
 
-        <div className="print-container font-serif text-black">
+        {/* Printable & Exportable Container */}
+        <div ref={printContainerRef} className="print-container font-serif text-black bg-white p-4 sm:p-6 md:p-8 rounded-xl border border-gray-100 print:border-none print:p-0">
           {/* Header section with Motto on very top center */}
           <div className="text-center space-y-1 mb-8">
             <h3 className="khmer-moul text-lg tracking-widest">ព្រះរាជាណាចក្រកម្ពុជា</h3>
@@ -235,7 +292,7 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
             </div>
           </div>
 
-          <div className="text-left font-bold text-[12px] space-y-1 mb-12 w-full max-w-[400px]">
+          <div className="text-left font-bold text-[12px] space-y-1 mb-10 w-full max-w-[400px]">
              <p className="khmer-moul text-gray-800 leading-tight">ការិយាល័យអប់រំ យុវជន និងកីឡាស្រុក ......</p>
              <p className="khmer-moul text-gray-800 leading-tight">កម្រង៖ .......</p>
              <p className="khmer-moul text-gray-800 leading-tight">សាលាបឋមសិក្សា ........</p>
@@ -260,7 +317,7 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: Math.max(records.length, 15) }).map((_, index) => {
+                {Array.from({ length: Math.max(records.length, 12) }).map((_, index) => {
                   const record = records[index];
                   return (
                     <tr key={record?.id || index} className="border-b border-black h-9 relative group hover:bg-gray-50/50">
@@ -276,8 +333,8 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
                         {record && (
                           <button 
                             onClick={() => onDelete(record.id)}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700 p-1 transition-opacity print:hidden"
-                            title="លុប"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700 p-1 transition-opacity print:hidden no-pdf"
+                            title="លុបជួរនេះ"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -292,19 +349,19 @@ const AttendanceList: React.FC<Props> = ({ records, onDelete, onClear }) => {
             </table>
           </div>
 
-          <div className="mt-4 space-y-4 px-2">
+          <div className="mt-6 space-y-4 px-2">
             <p className="text-sm">បញ្ឈប់បញ្ជីត្រឹមចំនួន <span className="underline decoration-dotted inline-block min-w-[40px] text-center font-bold">{records.length}</span> នាក់ ស្រី <span className="underline decoration-dotted inline-block min-w-[40px] text-center font-bold">{femaleCount}</span> នាក់</p>
             
-            <div className="grid grid-cols-2 gap-8 text-sm">
-                <div className="space-y-1 mt-6">
-                    <p className="text-center font-bold">បានឃើញនិងឯកភាព</p>
-                    <p className="text-center font-bold">នាយកសាលា</p>
+            <div className="grid grid-cols-2 gap-8 text-sm pt-4">
+                <div className="space-y-1 mt-6 text-center">
+                    <p className="font-bold">បានឃើញនិងឯកភាព</p>
+                    <p className="font-bold">នាយកសាលា</p>
                     <div className="h-24"></div>
                 </div>
                 <div className="space-y-1 text-right">
                     <p>ថ្ងៃ..................ខែ.........ឆ្នាំ........................ព.ស ២៥៦...</p>
                     <p>......... ថ្ងៃទី......ខែ............ឆ្នាំ ២០២...</p>
-                    <p className="text-center pr-12 font-bold">លេខាធិការ</p>
+                    <p className="text-center pr-12 font-bold mt-2">លេខាធិការ</p>
                     <div className="h-24"></div>
                 </div>
             </div>

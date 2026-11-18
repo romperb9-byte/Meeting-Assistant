@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AttendanceRecord, MinutesData } from '../types';
 import { GoogleGenAI } from "@google/genai";
+import { exportElementToPdf } from '../services/pdfExport';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY });
 
 interface Props {
   records: AttendanceRecord[];
@@ -16,7 +16,10 @@ const toKhmerNum = (num: number | string) => {
 
 const MinutesGenerator: React.FC<Props> = ({ records }) => {
   const [loading, setLoading] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [result, setResult] = useState('');
+  const minutesPaperRef = useRef<HTMLDivElement>(null);
+
   const [formData, setFormData] = useState<MinutesData>({
     date: new Date().toISOString().split('T')[0],
     lunarDate: '',
@@ -51,10 +54,10 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
       <div 
         style={{ 
           fontFamily: "'Khmer OS Battambang', 'Kantumruy Pro', sans-serif", 
-          lineHeight: '1.4', 
+          lineHeight: '1.6', 
           textAlign: 'left' 
         }}
-        className="text-[18px] text-gray-900" 
+        className="text-[17px] text-gray-900" 
         dangerouslySetInnerHTML={{ __html: formatted.replace(/\n/g, '<br/>') }} 
       />
     );
@@ -89,7 +92,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
         Formatting: Single spacing equivalent, Left Aligned, Formal Khmer words. NO TITLE.
       `;
 
-      const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+      const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
       setResult(response.text || '');
     } catch (error) {
       console.error(error);
@@ -97,6 +100,30 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!minutesPaperRef.current) return;
+    setIsExportingPdf(true);
+    try {
+      const cleanTopic = (formData.topic || 'កំណត់ហេតុ').replace(/[/\\?%*:|"<>]/g, '_').substring(0, 20);
+      const dateStr = new Date(formData.date).toLocaleDateString('km-KH').replace(/\//g, '-');
+      await exportElementToPdf({
+        element: minutesPaperRef.current,
+        filename: `កំណត់ហេតុ_${cleanTopic}_${dateStr}.pdf`,
+        orientation: 'portrait',
+        marginMm: 12,
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('មានបញ្ហាក្នុងការទាញយកជា PDF');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleDownloadWord = () => {
@@ -110,7 +137,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
         <meta charset='utf-8'>
         <style>
           @page { margin: 1in; }
-          body { font-family: 'Khmer OS Battambang', serif; line-height: 1.0; text-align: left; }
+          body { font-family: 'Khmer OS Battambang', serif; line-height: 1.2; text-align: left; }
           .khmer-moul { font-family: 'Moul', serif; font-weight: bold; }
           .text-center { text-align: center; }
           .underline { text-decoration: underline; }
@@ -162,6 +189,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
     link.href = url;
     link.download = `កំណត់ហេតុ_${formData.topic.substring(0, 15)}.doc`;
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -264,52 +292,125 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
       </div>
 
       {result && (
-        <div className="bg-white shadow-2xl rounded-[0.5rem] p-8 md:p-20 border border-gray-100 relative">
-          
-          <div className="text-center space-y-1 mb-8">
-            <h3 className="khmer-moul text-lg tracking-widest">ព្រះរាជាណាចក្រកម្ពុជា</h3>
-            <h3 className="khmer-moul text-lg tracking-widest">ជាតិ សាសនា ព្រះមហាក្សត្រ</h3>
-            <div className="flex justify-center py-1">
-              <span className="text-lg font-serif">~ ~ ~ ~ ~ ❀ ~ ~ ~ ~ ~</span>
-            </div>
-          </div>
-
-          <div className="text-left font-bold text-[14px] space-y-1 mb-12 max-w-[500px]">
-            <p className="khmer-moul text-gray-800 leading-tight">{formData.office}</p>
-            <p className="khmer-moul text-gray-800 leading-tight">{formData.cluster}</p>
-            <p className="khmer-moul text-gray-800 leading-tight">{formData.school}</p>
-          </div>
-
-          <div className="text-center mb-10">
-            <div className="inline-block relative">
-               <h3 className="khmer-moul text-lg px-6 underline underline-offset-[8px] decoration-1 italic">ការប្រជុំស្តីពី {formData.topic || '...'}</h3>
-            </div>
-          </div>
-
-          <div className="mt-8">{formatResult(result)}</div>
-
-          <div className="mt-24 grid grid-cols-2 gap-10">
-            <div className="text-center flex flex-col items-center">
-               <p className="khmer-moul text-base mb-2">បានឃើញ និងឯកភាព</p>
-               <p className="khmer-moul text-base mb-1">ប្រធានអង្គប្រជុំ</p>
-               <p className="text-[13px] text-gray-600 italic mb-8">{formData.chairpersonPosition}</p>
-               <div className="h-24"></div>
-               <p className="khmer-moul text-base">{formData.chairperson}</p>
-            </div>
-            <div className="text-center flex flex-col items-center">
-               <p className="text-[15px] mb-2">{formData.location} ថ្ងៃទី {toKhmerNum(new Date(formData.date).getDate())} ខែ {['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'][new Date(formData.date).getMonth()]} ឆ្នាំ {toKhmerNum(new Date(formData.date).getFullYear())}</p>
-               <p className="khmer-moul text-base mb-1">អ្នកធ្វើកំណត់ហេតុ</p>
-               <p className="text-[13px] text-gray-600 italic mb-8">{formData.secretaryPosition}</p>
-               <div className="h-24"></div>
-               <p className="khmer-moul text-base">{formData.secretary}</p>
-            </div>
-          </div>
-          
-          <div className="print:hidden mt-20 border-t border-gray-100 pt-10 flex flex-col items-center">
-            <button onClick={handleDownloadWord} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-12 rounded-2xl shadow-xl flex items-center space-x-3 transition-all active:scale-95">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
-              <span className="text-lg">ទាញយកជា Word (.doc)</span>
+        <div className="space-y-6">
+          {/* Action Toolbar on Top of Preview */}
+          <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
+            <button 
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="flex items-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md shadow-rose-200 transition-all active:scale-95"
+              title="ទាញយកជាឯកសារ PDF A4 Portrait ស្អាតស្ដង់ដារ"
+            >
+              {isExportingPdf ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9h1m0 4h6m-6 4h6" />
+                </svg>
+              )}
+              <span>{isExportingPdf ? "កំពុងបង្កើត PDF..." : "ទាញយកជា PDF (.pdf)"}</span>
             </button>
+
+            <button 
+              onClick={handleDownloadWord} 
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md shadow-blue-200 transition-all active:scale-95"
+              title="ទាញយកជាឯកសារ Microsoft Word"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <span>ទាញយកជា Word (.doc)</span>
+            </button>
+
+            <button 
+              onClick={handlePrint}
+              className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"
+              title="បោះពុម្ពឯកសារ"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>បោះពុម្ព</span>
+            </button>
+          </div>
+
+          {/* Printable & Exportable Document Area */}
+          <div ref={minutesPaperRef} className="print-container bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-gray-100 relative print:shadow-none print:border-none print:p-0">
+            
+            <div className="text-center space-y-1 mb-8">
+              <h3 className="khmer-moul text-lg tracking-widest">ព្រះរាជាណាចក្រកម្ពុជា</h3>
+              <h3 className="khmer-moul text-lg tracking-widest">ជាតិ សាសនា ព្រះមហាក្សត្រ</h3>
+              <div className="flex justify-center py-1">
+                <span className="text-lg font-serif">~ ~ ~ ~ ~ ❀ ~ ~ ~ ~ ~</span>
+              </div>
+            </div>
+
+            <div className="text-left font-bold text-[14px] space-y-1 mb-10 max-w-[500px]">
+              <p className="khmer-moul text-gray-800 leading-tight">{formData.office}</p>
+              <p className="khmer-moul text-gray-800 leading-tight">{formData.cluster}</p>
+              <p className="khmer-moul text-gray-800 leading-tight">{formData.school}</p>
+            </div>
+
+            <div className="text-center mb-8">
+              <div className="inline-block relative">
+                 <h3 className="khmer-moul text-lg px-6 underline underline-offset-[8px] decoration-1 italic">ការប្រជុំស្តីពី {formData.topic || '...'}</h3>
+              </div>
+            </div>
+
+            <div className="mt-8">{formatResult(result)}</div>
+
+            <div className="mt-20 grid grid-cols-2 gap-10">
+              <div className="text-center flex flex-col items-center">
+                 <p className="khmer-moul text-base mb-2">បានឃើញ និងឯកភាព</p>
+                 <p className="khmer-moul text-base mb-1">ប្រធានអង្គប្រជុំ</p>
+                 <p className="text-[13px] text-gray-600 italic mb-8">{formData.chairpersonPosition}</p>
+                 <div className="h-20"></div>
+                 <p className="khmer-moul text-base">{formData.chairperson}</p>
+              </div>
+              <div className="text-center flex flex-col items-center">
+                 <p className="text-[14px] mb-2">{formData.location} ថ្ងៃទី {toKhmerNum(new Date(formData.date).getDate())} ខែ {['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'][new Date(formData.date).getMonth()]} ឆ្នាំ {toKhmerNum(new Date(formData.date).getFullYear())}</p>
+                 <p className="khmer-moul text-base mb-1">អ្នកធ្វើកំណត់ហេតុ</p>
+                 <p className="text-[13px] text-gray-600 italic mb-8">{formData.secretaryPosition}</p>
+                 <div className="h-20"></div>
+                 <p className="khmer-moul text-base">{formData.secretary}</p>
+              </div>
+            </div>
+            
+            {/* Bottom Actions */}
+            <div className="print:hidden mt-16 border-t border-gray-100 pt-8 flex flex-wrap justify-center gap-4">
+              <button 
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+                className="bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-rose-200 flex items-center space-x-2 transition-all active:scale-95 text-base"
+              >
+                {isExportingPdf ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9h1m0 4h6m-6 4h6" />
+                  </svg>
+                )}
+                <span>{isExportingPdf ? "កំពុងបង្កើត PDF..." : "ទាញយកជា PDF (.pdf)"}</span>
+              </button>
+
+              <button 
+                onClick={handleDownloadWord} 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-200 flex items-center space-x-2 transition-all active:scale-95 text-base"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span>ទាញយកជា Word (.doc)</span>
+              </button>
+
+              <button 
+                onClick={handlePrint} 
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 px-6 rounded-xl shadow-sm flex items-center space-x-2 transition-all active:scale-95 text-base"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>បោះពុម្ព</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
