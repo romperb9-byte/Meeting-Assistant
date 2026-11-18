@@ -5,6 +5,7 @@ import AttendanceForm from './components/AttendanceForm';
 import AttendanceList from './components/AttendanceList';
 import Navigation from './components/Navigation';
 import MinutesGenerator from './components/MinutesGenerator';
+import ReportGenerator from './components/ReportGenerator';
 import GroupList from './components/GroupList';
 import { 
   subscribeToRecords, 
@@ -248,6 +249,9 @@ const App: React.FC = () => {
             )}
             {view === AppView.MINUTES && (
               <MinutesGenerator records={records} />
+            )}
+            {view === AppView.REPORT && (
+              <ReportGenerator records={records} />
             )}
           </div>
         )}

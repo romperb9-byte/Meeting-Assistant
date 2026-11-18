@@ -1,4 +1,3 @@
-
 export interface MeetingGroup {
   id: string;
   name: string;
@@ -23,7 +22,8 @@ export enum AppView {
   HOME = 'HOME',
   FORM = 'FORM',
   LIST = 'LIST',
-  MINUTES = 'MINUTES'
+  MINUTES = 'MINUTES',
+  REPORT = 'REPORT'
 }
 
 export interface MinutesData {
@@ -43,4 +43,29 @@ export interface MinutesData {
   results: string;
   startTime: string;
   endTime: string;
+}
+
+export interface ReportData {
+  district: string;
+  province: string;
+  office: string;
+  cluster: string;
+  school: string;
+  title: string;
+  targetGroup: string;
+  referenceLetter: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+  coordinator: string;
+  trainer: string;
+  reporter: string;
+  reporterPosition: string;
+  approver: string;
+  approverPosition: string;
+  overviewNotes: string;
+  challenges: string;
+  solutions: string;
+  suggestions: string;
+  photos: string[];
 }
