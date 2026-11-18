@@ -1,19 +1,37 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ជំនួយការប្រជុំ (Khmer Meeting Assistant) 🇰🇭
 
-# Run and deploy your AI Studio app
+កម្មវិធីគ្រប់គ្រងវត្តមានប្រជុំ និងបង្កើតកំណត់ហេតុអង្គប្រជុំដោយស្វ័យប្រវត្តិជាមួយ AI ជាភាសាខ្មែរ។
 
-This contains everything you need to run your app locally.
-https://ai.studio/apps/03aeb929-a7af-4b1a-a3d8-51dd9ffa3836
+🌐 **តំណភ្ជាប់ប្រើប្រាស់កម្មវិធីផ្ទាល់ (Live Website):**  
+👉 **[https://romperb9-byte.github.io/Meeting-Assistant/](https://romperb9-byte.github.io/Meeting-Assistant/)**
 
-## Run Locally
+---
 
-**Prerequisites:**  Node.js
+## មុខងារចម្បងៗ (Key Features)
 
+- 👥 **គ្រប់គ្រងក្រុមប្រជុំ (Meeting Groups):** បង្កើតក្រុមប្រជុំតាមផ្នែក ឬកម្រង និងមានលេខកូដសម្ងាត់ការពារ។
+- 📝 **ស្រង់វត្តមាន (Attendance Tracking):** ចុះវត្តមានអ្នកចូលរួមប្រជុំ និងរក្សាទុកនៅលើ Firebase Cloud Database។
+- 📄 **ទាញយកជាឯកសារ Word & Print:** អាចបោះពុម្ព ឬទាញយកបញ្ជីវត្តមានជាទម្រង់ Microsoft Word (`.doc`) តាមទម្រង់រដ្ឋបាលខ្មែរ។
+- 🤖 **បង្កើតកំណត់ហេតុដោយ AI (AI Meeting Minutes):** បង្កើតកំណត់ហេតុអង្គប្រជុំជាផ្លូវការដោយស្វ័យប្រវត្តិដោយប្រើប្រាស់ Gemini AI។
+- 📲 **ចែករំលែកងាយស្រួល:** មានភ្ជាប់ QR Code និង Link សម្រាប់ឱ្យអ្នកចូលរួមស្កែនចុះវត្តមានផ្ទាល់ពីទូរស័ព្ទ។
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+
+## របៀបដំណើរការនៅលើកុំព្យូទ័រ (Run Locally)
+
+ប្រសិនបើអ្នកចង់បើកដំណើរការនៅលើម៉ាស៊ីនផ្ទាល់ខ្លួន៖
+
+1. **ទាញយកកញ្ចប់កម្មវិធី (Install Dependencies):**
+   ```bash
+   npm install
+   ```
+
+2. **កំណត់ API Key (Optional សម្រាប់ AI):**
+   - បង្កើតឯកសារ `.env` (ឬចម្លងពី `.env.example`)
+   - ដាក់ `GEMINI_API_KEY=YOUR_API_KEY`
+
+3. **បើកដំណើរការកម្មវិធី (Start Local Server):**
+   ```bash
+   npm run dev
+   ```
+   បន្ទាប់មកបើក Browser ទៅកាន់ `http://localhost:3000`
