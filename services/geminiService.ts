@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const scanAttendanceForm = async (base64Image: string): Promise<Partial<AttendanceRecord>[]> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.8-flash',
     contents: [
       {
         parts: [
@@ -62,7 +62,7 @@ export const generateMeetingMinutes = async (records: AttendanceRecord[], notes:
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.8-flash',
     contents: prompt,
   });
 

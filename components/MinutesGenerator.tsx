@@ -148,7 +148,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
 
       const aiClient = new GoogleGenAI({ apiKey: currentKey });
       const response = await aiClient.models.generateContent({ 
-        model: 'gemini-2.5-flash', 
+        model: 'gemini-3.8-flash', 
         contents: prompt 
       });
 
