@@ -4,9 +4,16 @@ import { AppView } from '../types';
 interface Props {
   activeView: AppView;
   onViewChange: (view: AppView) => void;
+  isDocUnlocked?: boolean;
+  onDocUnlockRequest?: () => void;
 }
 
-const Navigation: React.FC<Props> = ({ activeView, onViewChange }) => {
+const Navigation: React.FC<Props> = ({ 
+  activeView, 
+  onViewChange, 
+  isDocUnlocked = false, 
+  onDocUnlockRequest 
+}) => {
   const [showDocMenu, setShowDocMenu] = useState(false);
   const docMenuRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +43,14 @@ const Navigation: React.FC<Props> = ({ activeView, onViewChange }) => {
         return 'រចនាសម្ព័ន្ធ';
       default:
         return 'ឯកសារ';
+    }
+  };
+
+  const handleDocClick = () => {
+    if (!isDocUnlocked && onDocUnlockRequest) {
+      onDocUnlockRequest();
+    } else {
+      setShowDocMenu(prev => !prev);
     }
   };
 
@@ -92,12 +107,12 @@ const Navigation: React.FC<Props> = ({ activeView, onViewChange }) => {
 
         {/* 3. Documents - ឯកសារ (រួមបញ្ចូល: កំណត់ហេតុ, របាយការណ៍, រចនាសម្ព័ន្ធ) */}
         <div className="flex-1 flex flex-col items-center relative" ref={docMenuRef}>
-          {/* Popup Menu floating above bottom nav */}
-          {showDocMenu && (
+          {/* Popup Menu floating above bottom nav (when unlocked) */}
+          {showDocMenu && isDocUnlocked && (
             <div className="absolute bottom-16 right-0 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
               <div className="px-3 py-1.5 border-b border-gray-100 flex items-center justify-between">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ជ្រើសរើសឯកសារ</span>
-                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-bold">៣ មុខងារ</span>
+                <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">🔓 ដោះសោរួច</span>
               </div>
 
               {/* A. Minutes */}
@@ -170,24 +185,33 @@ const Navigation: React.FC<Props> = ({ activeView, onViewChange }) => {
 
           <button
             type="button"
-            onClick={() => setShowDocMenu(prev => !prev)}
+            onClick={handleDocClick}
             className={`flex flex-col items-center w-full transition-all ${
               isDocumentActive ? 'text-indigo-600 font-extrabold scale-105' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <div className="relative">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {isDocumentActive && (
+              {!isDocUnlocked ? (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+              {isDocumentActive && isDocUnlocked && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full"></span>
               )}
             </div>
             <span className="text-[10px] sm:text-xs font-bold mt-1 flex items-center gap-0.5">
               <span>{isDocumentActive ? getActiveDocLabel() : 'ឯកសារ'}</span>
-              <svg className={`w-3 h-3 transition-transform ${showDocMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-              </svg>
+              {!isDocUnlocked && <span className="text-[9px] text-amber-600 font-mono font-bold">🔒321</span>}
+              {isDocUnlocked && (
+                <svg className={`w-3 h-3 transition-transform ${showDocMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                </svg>
+              )}
             </span>
           </button>
         </div>
