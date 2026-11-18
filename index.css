@@ -1,0 +1,6 @@
+/* Custom styles for Khmer Meeting Assistant */
+@media print {
+  body {
+    background-color: white !important;
+  }
+}
