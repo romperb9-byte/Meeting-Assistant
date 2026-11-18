@@ -10,6 +10,9 @@ interface Props {
 const StructureGenerator: React.FC<Props> = ({ records, selectedGroup }) => {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart');
+  const [lineWidth, setLineWidth] = useState<number>(2.5);
+  const [lineColor, setLineColor] = useState<string>('#374151');
+  const [stemHeight, setStemHeight] = useState<number>(28);
   const structureContainerRef = useRef<HTMLDivElement>(null);
 
   // Form State
@@ -436,6 +439,102 @@ const StructureGenerator: React.FC<Props> = ({ records, selectedGroup }) => {
         </div>
       </div>
 
+      {/* Line Customization Bar (Only in Org Chart Tab) */}
+      {activeTab === 'chart' && (
+        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-4 print:hidden">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            {/* Line Thickness */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+                ទំហំបន្ទាត់មែកធាង៖
+              </span>
+              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                {[
+                  { label: '១.៥px (ស្តើង)', val: 1.5 },
+                  { label: '២.៥px (មធ្យម)', val: 2.5 },
+                  { label: '៣.៥px (ក្រាស់)', val: 3.5 },
+                  { label: '៥px (ក្រាស់ខ្លាំង)', val: 5.0 },
+                ].map(opt => (
+                  <button
+                    key={opt.val}
+                    type="button"
+                    onClick={() => setLineWidth(opt.val)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                      lineWidth === opt.val 
+                        ? 'bg-indigo-600 text-white shadow-xs' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{lineWidth}px</span>
+            </div>
+
+            {/* Line Color */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-700">ពណ៌បន្ទាត់៖</span>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { color: '#374151', name: 'ប្រផេះចាស់ (Gray)' },
+                  { color: '#111827', name: 'ខ្មៅសុទ្ធ (Black)' },
+                  { color: '#1e40af', name: 'ខៀវចាស់ (Navy Blue)' },
+                  { color: '#047857', name: 'បៃតងចាស់ (Forest Green)' },
+                  { color: '#b45309', name: 'ទង់ដែង (Amber)' },
+                ].map(c => (
+                  <button
+                    key={c.color}
+                    type="button"
+                    title={c.name}
+                    onClick={() => setLineColor(c.color)}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      lineColor === c.color ? 'scale-125 border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-white hover:scale-110 shadow-xs'
+                    }`}
+                    style={{ backgroundColor: c.color }}
+                  />
+                ))}
+                <input 
+                  type="color" 
+                  value={lineColor} 
+                  onChange={(e) => setLineColor(e.target.value)}
+                  className="w-7 h-7 p-0 rounded-full border border-gray-300 cursor-pointer overflow-hidden ml-1" 
+                  title="ជ្រើសរើសពណ៌ផ្ទាល់ខ្លួន"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Branch Vertical Spacing */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-bold text-gray-700">គម្លាតមែកធាង៖</span>
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+              {[
+                { label: 'ជិត (20px)', val: 20 },
+                { label: 'មធ្យម (28px)', val: 28 },
+                { label: 'ទូលាយ (38px)', val: 38 },
+              ].map(s => (
+                <button
+                  key={s.val}
+                  type="button"
+                  onClick={() => setStemHeight(s.val)}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                    stemHeight === s.val 
+                      ? 'bg-white text-indigo-600 shadow-xs' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Printable & Exportable Structure Container */}
       <div 
         ref={structureContainerRef} 
@@ -472,163 +571,307 @@ const StructureGenerator: React.FC<Props> = ({ records, selectedGroup }) => {
           )}
         </div>
 
-        {/* VIEW 1: Visual Organigram Chart */}
+        {/* VIEW 1: Visual Organigram Chart with Fully Connected Tree Branches */}
         {activeTab === 'chart' && (
-          <div className="space-y-8 my-6">
+          <div className="space-y-0 my-6 flex flex-col items-center min-w-max px-2">
             {/* Level 1: Leaders (ប្រធាន) */}
             {leaders.length > 0 && (
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 mb-3 uppercase tracking-wider print:hidden no-pdf">
+              <div className="flex flex-col items-center w-full">
+                <div className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 mb-2 uppercase tracking-wider print:hidden no-pdf">
                   ថ្នាក់ដឹកនាំកំពូល (ប្រធាន)
                 </div>
-                <div className="flex flex-wrap justify-center gap-6">
-                  {leaders.map(member => (
-                    <div 
-                      key={member.id} 
-                      className="relative bg-gradient-to-b from-amber-50/40 via-white to-amber-50/20 border-2 border-amber-400 rounded-2xl p-4 w-64 shadow-md text-center group transition-all"
-                    >
-                      {/* Action buttons (hidden on print/pdf) */}
-                      <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden no-pdf">
-                        <button onClick={() => handleEditMember(member)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-blue-600 hover:bg-blue-50" title="កែប្រែ">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteMember(member.id)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-red-600 hover:bg-red-50" title="លុប">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
 
-                      <div className="w-20 h-24 mx-auto mb-3 rounded-xl border-2 border-amber-400 overflow-hidden bg-gray-100 flex items-center justify-center shadow-inner">
-                        {member.photo ? (
-                          <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="text-amber-300 flex flex-col items-center">
-                            <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
-                            <span className="text-[9px] text-gray-400 mt-0.5">រូបថត</span>
-                          </div>
+                <div className="flex justify-center items-start">
+                  {leaders.map((member, idx) => (
+                    <div key={member.id} className="flex flex-col items-center px-4">
+                      {/* If multiple leaders, top connector branch */}
+                      {leaders.length > 1 && (
+                        <div 
+                          className="relative w-full flex items-center justify-center"
+                          style={{ height: `${stemHeight}px` }}
+                        >
+                          <div 
+                            className="absolute top-0"
+                            style={{
+                              height: `${lineWidth}px`,
+                              backgroundColor: lineColor,
+                              left: idx === 0 ? '50%' : '0',
+                              right: idx === leaders.length - 1 ? '50%' : '0',
+                            }}
+                          />
+                          <div 
+                            className="absolute top-0 bottom-0"
+                            style={{
+                              width: `${lineWidth}px`,
+                              backgroundColor: lineColor,
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Leader Card */}
+                      <div 
+                        className="relative bg-gradient-to-b from-amber-50/40 via-white to-amber-50/20 border-2 border-amber-400 rounded-2xl p-4 w-64 shadow-md text-center group transition-all"
+                      >
+                        {/* Top connection anchor */}
+                        {leaders.length > 1 && (
+                          <div 
+                            className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full shadow-xs"
+                            style={{ backgroundColor: lineColor }}
+                          />
+                        )}
+
+                        {/* Bottom connection anchor */}
+                        {(deputies.length > 0 || normalMembers.length > 0) && (
+                          <div 
+                            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full z-10 shadow-xs"
+                            style={{ backgroundColor: lineColor }}
+                          />
+                        )}
+
+                        {/* Action buttons (hidden on print/pdf) */}
+                        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden no-pdf">
+                          <button onClick={() => handleEditMember(member)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-blue-600 hover:bg-blue-50" title="កែប្រែ">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          </button>
+                          <button onClick={() => handleDeleteMember(member.id)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-red-600 hover:bg-red-50" title="លុប">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+
+                        <div className="w-20 h-24 mx-auto mb-3 rounded-xl border-2 border-amber-400 overflow-hidden bg-gray-100 flex items-center justify-center shadow-inner">
+                          {member.photo ? (
+                            <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-amber-300 flex flex-col items-center">
+                              <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                              <span className="text-[9px] text-gray-400 mt-0.5">រូបថត</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-amber-600 text-white font-bold text-xs py-1 px-3 rounded-lg inline-block shadow-sm mb-2">
+                          {member.role}
+                        </div>
+
+                        <h4 className="khmer-moul text-gray-900 text-sm leading-tight mb-1">{member.name}</h4>
+                        {member.originalPosition && (
+                          <p className="text-[11px] text-gray-600 font-medium">{member.originalPosition}</p>
+                        )}
+                        {member.phone && (
+                          <p className="text-[10px] text-gray-400 mt-1">ទូរស័ព្ទ៖ {member.phone}</p>
                         )}
                       </div>
-
-                      <div className="bg-amber-600 text-white font-bold text-xs py-1 px-3 rounded-lg inline-block shadow-sm mb-2">
-                        {member.role}
-                      </div>
-
-                      <h4 className="khmer-moul text-gray-900 text-sm leading-tight mb-1">{member.name}</h4>
-                      {member.originalPosition && (
-                        <p className="text-[11px] text-gray-600 font-medium">{member.originalPosition}</p>
-                      )}
-                      {member.phone && (
-                        <p className="text-[10px] text-gray-400 mt-1">ទូរស័ព្ទ៖ {member.phone}</p>
-                      )}
                     </div>
                   ))}
                 </div>
 
-                {/* Connecting Line Down */}
-                {deputies.length > 0 && (
-                  <div className="w-0.5 h-8 bg-gray-300 my-1"></div>
+                {/* Central Vertical Stem directly connected from bottom of Leader to Deputies */}
+                {(deputies.length > 0 || normalMembers.length > 0) && (
+                  <div 
+                    style={{
+                      width: `${lineWidth}px`,
+                      height: `${stemHeight}px`,
+                      backgroundColor: lineColor,
+                    }}
+                  />
                 )}
               </div>
             )}
 
             {/* Level 2: Deputies (អនុប្រធាន) */}
             {deputies.length > 0 && (
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3 uppercase tracking-wider print:hidden no-pdf">
+              <div className="flex flex-col items-center w-full">
+                <div className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-1 uppercase tracking-wider print:hidden no-pdf">
                   ថ្នាក់អនុប្រធាន
                 </div>
-                <div className="flex flex-wrap justify-center gap-6">
-                  {deputies.map(member => (
-                    <div 
-                      key={member.id} 
-                      className="relative bg-gradient-to-b from-blue-50/30 via-white to-blue-50/20 border-2 border-blue-300 rounded-2xl p-3.5 w-56 shadow-sm text-center group transition-all"
-                    >
-                      {/* Action buttons */}
-                      <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden no-pdf">
-                        <button onClick={() => handleEditMember(member)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-blue-600 hover:bg-blue-50" title="កែប្រែ">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteMember(member.id)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-red-600 hover:bg-red-50" title="លុប">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
+
+                {/* Deputies Tree Row */}
+                <div className="flex justify-center items-start w-full">
+                  {deputies.map((member, idx) => (
+                    <div key={member.id} className="flex-1 max-w-[240px] flex flex-col items-center px-2">
+                      {/* Seamless Connector Tree Branch above Deputy card */}
+                      <div 
+                        className="relative w-full flex items-center justify-center"
+                        style={{ height: `${stemHeight}px` }}
+                      >
+                        {/* Horizontal distribution branch bar */}
+                        {deputies.length > 1 && (
+                          <div 
+                            className="absolute top-0"
+                            style={{
+                              height: `${lineWidth}px`,
+                              backgroundColor: lineColor,
+                              left: idx === 0 ? '50%' : '0',
+                              right: idx === deputies.length - 1 ? '50%' : '0',
+                            }}
+                          />
+                        )}
+                        {/* Vertical drop stem touching directly into the top of the card */}
+                        <div 
+                          className="absolute top-0 bottom-0"
+                          style={{
+                            width: `${lineWidth}px`,
+                            backgroundColor: lineColor,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                          }}
+                        />
                       </div>
 
-                      <div className="w-18 h-22 mx-auto mb-2 rounded-xl border border-blue-300 overflow-hidden bg-gray-100 flex items-center justify-center">
-                        {member.photo ? (
-                          <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="text-blue-300 flex flex-col items-center">
-                            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
-                            <span className="text-[8px] text-gray-400">រូបថត</span>
-                          </div>
+                      {/* Deputy Card */}
+                      <div 
+                        className="relative bg-gradient-to-b from-blue-50/30 via-white to-blue-50/20 border-2 border-blue-300 rounded-2xl p-3.5 w-full shadow-sm text-center group transition-all"
+                      >
+                        {/* Top connection anchor point */}
+                        <div 
+                          className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full shadow-xs"
+                          style={{ backgroundColor: lineColor }}
+                        />
+
+                        {/* Bottom connection anchor point if normalMembers exist */}
+                        {normalMembers.length > 0 && (
+                          <div 
+                            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full z-10 shadow-xs"
+                            style={{ backgroundColor: lineColor }}
+                          />
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden no-pdf">
+                          <button onClick={() => handleEditMember(member)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-blue-600 hover:bg-blue-50" title="កែប្រែ">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          </button>
+                          <button onClick={() => handleDeleteMember(member.id)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-red-600 hover:bg-red-50" title="លុប">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+
+                        <div className="w-18 h-22 mx-auto mb-2 rounded-xl border border-blue-300 overflow-hidden bg-gray-100 flex items-center justify-center">
+                          {member.photo ? (
+                            <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-blue-300 flex flex-col items-center">
+                              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                              <span className="text-[8px] text-gray-400">រូបថត</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-blue-600 text-white font-bold text-[11px] py-0.5 px-2.5 rounded-lg inline-block shadow-sm mb-1.5">
+                          {member.role}
+                        </div>
+
+                        <h4 className="khmer-moul text-gray-900 text-xs leading-tight mb-1">{member.name}</h4>
+                        {member.originalPosition && (
+                          <p className="text-[10px] text-gray-600 font-medium">{member.originalPosition}</p>
+                        )}
+                        {member.phone && (
+                          <p className="text-[9px] text-gray-400 mt-0.5">ទូរស័ព្ទ៖ {member.phone}</p>
                         )}
                       </div>
-
-                      <div className="bg-blue-600 text-white font-bold text-[11px] py-0.5 px-2.5 rounded-lg inline-block shadow-sm mb-1.5">
-                        {member.role}
-                      </div>
-
-                      <h4 className="khmer-moul text-gray-900 text-xs leading-tight mb-1">{member.name}</h4>
-                      {member.originalPosition && (
-                        <p className="text-[10px] text-gray-600 font-medium">{member.originalPosition}</p>
-                      )}
-                      {member.phone && (
-                        <p className="text-[9px] text-gray-400 mt-0.5">ទូរស័ព្ទ៖ {member.phone}</p>
-                      )}
                     </div>
                   ))}
                 </div>
 
-                {/* Connecting Line Down */}
+                {/* Central Vertical Stem directly connected from Deputies down to Members */}
                 {normalMembers.length > 0 && (
-                  <div className="w-0.5 h-8 bg-gray-300 my-1"></div>
+                  <div 
+                    style={{
+                      width: `${lineWidth}px`,
+                      height: `${stemHeight}px`,
+                      backgroundColor: lineColor,
+                    }}
+                  />
                 )}
               </div>
             )}
 
             {/* Level 3: Members (សមាជិក / លេខា / បេឡា) */}
             {normalMembers.length > 0 && (
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 mb-4 uppercase tracking-wider print:hidden no-pdf">
+              <div className="flex flex-col items-center w-full">
+                <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 mb-1 uppercase tracking-wider print:hidden no-pdf">
                   សមាជិក និងផ្នែកប្រតិបត្តិ
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 w-full">
-                  {normalMembers.map(member => (
-                    <div 
-                      key={member.id} 
-                      className="relative bg-white border border-gray-200 rounded-xl p-3 shadow-xs text-center group hover:border-emerald-400 transition-all"
-                    >
-                      {/* Action buttons */}
-                      <div className="absolute top-1.5 right-1.5 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden no-pdf">
-                        <button onClick={() => handleEditMember(member)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-blue-600 hover:bg-blue-50" title="កែប្រែ">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteMember(member.id)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-red-600 hover:bg-red-50" title="លុប">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
+
+                {/* Members Tree Row */}
+                <div className="flex justify-center items-start flex-wrap w-full">
+                  {normalMembers.map((member, idx) => (
+                    <div key={member.id} className="flex-1 min-w-[170px] max-w-[210px] flex flex-col items-center px-1.5 py-1">
+                      {/* Seamless Connector Tree Branch above Member card */}
+                      <div 
+                        className="relative w-full flex items-center justify-center"
+                        style={{ height: `${stemHeight}px` }}
+                      >
+                        {/* Horizontal distribution branch bar */}
+                        {normalMembers.length > 1 && (
+                          <div 
+                            className="absolute top-0"
+                            style={{
+                              height: `${lineWidth}px`,
+                              backgroundColor: lineColor,
+                              left: idx === 0 ? '50%' : '0',
+                              right: idx === normalMembers.length - 1 ? '50%' : '0',
+                            }}
+                          />
+                        )}
+                        {/* Vertical drop stem touching directly into the top of the card */}
+                        <div 
+                          className="absolute top-0 bottom-0"
+                          style={{
+                            width: `${lineWidth}px`,
+                            backgroundColor: lineColor,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                          }}
+                        />
                       </div>
 
-                      <div className="w-16 h-20 mx-auto mb-2 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
-                        {member.photo ? (
-                          <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="text-gray-300 flex flex-col items-center">
-                            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
-                            <span className="text-[7px] text-gray-400">រូបថត</span>
-                          </div>
+                      {/* Member Card */}
+                      <div 
+                        className="relative bg-white border-2 border-emerald-300 rounded-xl p-3 shadow-xs text-center w-full group hover:border-emerald-500 transition-all"
+                      >
+                        {/* Top connection anchor point */}
+                        <div 
+                          className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full shadow-xs"
+                          style={{ backgroundColor: lineColor }}
+                        />
+
+                        {/* Action buttons */}
+                        <div className="absolute top-1.5 right-1.5 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden no-pdf">
+                          <button onClick={() => handleEditMember(member)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-blue-600 hover:bg-blue-50" title="កែប្រែ">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          </button>
+                          <button onClick={() => handleDeleteMember(member.id)} className="p-1 bg-white shadow-sm border border-gray-200 rounded text-red-600 hover:bg-red-50" title="លុប">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+
+                        <div className="w-16 h-20 mx-auto mb-2 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                          {member.photo ? (
+                            <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-gray-300 flex flex-col items-center">
+                              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                              <span className="text-[7px] text-gray-400">រូបថត</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-emerald-600 text-white font-bold text-[10px] py-0.5 px-2 rounded-md inline-block shadow-xs mb-1">
+                          {member.role}
+                        </div>
+
+                        <h4 className="font-bold text-gray-900 text-xs truncate mb-0.5">{member.name}</h4>
+                        {member.originalPosition && (
+                          <p className="text-[10px] text-gray-500 truncate">{member.originalPosition}</p>
+                        )}
+                        {member.phone && (
+                          <p className="text-[9px] text-gray-400 truncate mt-0.5">{member.phone}</p>
                         )}
                       </div>
-
-                      <div className="bg-emerald-600 text-white font-bold text-[10px] py-0.5 px-2 rounded-md inline-block shadow-xs mb-1">
-                        {member.role}
-                      </div>
-
-                      <h4 className="font-bold text-gray-900 text-xs truncate mb-0.5">{member.name}</h4>
-                      {member.originalPosition && (
-                        <p className="text-[10px] text-gray-500 truncate">{member.originalPosition}</p>
-                      )}
-                      {member.phone && (
-                        <p className="text-[9px] text-gray-400 truncate mt-0.5">{member.phone}</p>
-                      )}
                     </div>
                   ))}
                 </div>
