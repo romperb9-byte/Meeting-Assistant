@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AttendanceRecord, MinutesData } from '../types';
 import { GoogleGenAI } from "@google/genai";
 import { exportElementToPdf } from '../services/pdfExport';
+import { formatToHtml, formatToWordHtml } from '../services/textFormatter';
 
 interface Props {
   records: AttendanceRecord[];
@@ -68,11 +69,6 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
 
   const formatResult = (text: string) => {
     if (!text) return null;
-    let formatted = text;
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-gray-900">$1</span>');
-    formatted = formatted.replace(/^([I|V|X]+\..*)$/gm, '<div class="khmer-moul mt-6 mb-2 text-base text-left text-gray-900 font-bold">$1</div>');
-    formatted = formatted.replace(/^- (.*)$/gm, '<div class="pl-4 mb-1.5 text-left"><span>- $1</span></div>');
-    
     return (
       <div 
         style={{ 
@@ -81,7 +77,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
           textAlign: 'left' 
         }}
         className="text-[16px] text-gray-900 space-y-1" 
-        dangerouslySetInnerHTML={{ __html: formatted.replace(/\n\n+/g, '<br/><br/>').replace(/\n/g, '<br/>') }} 
+        dangerouslySetInnerHTML={{ __html: formatToHtml(text) }} 
       />
     );
   };
@@ -142,6 +138,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
         - "អង្គប្រជុំត្រូវបានបញ្ចប់នៅវេលាម៉ោង... នាថ្ងៃដដែល ក្រោមបរិយាកាសរីករាយ ស្និទ្ធស្នាល និងប្រកបដោយស្មារតីទទួលខុសត្រូវខ្ពស់។"
 
         ចំណាំសំខាន់៖
+        - ដាច់ខាតកុំប្រើសញ្ញា Markdown ដូចជា #, ##, ###, *, **, ឬ _ ក្នុងអត្ថបទឡើយ។ សរសេរជាអក្សរធម្មតា និងក្បាលចំណុចធម្មតា (I. II. III., ១. ២. ៣., ក. ខ. គ. ឬ - )។
         - ប្រើពាក្យពេចន៍រដ្ឋបាលខ្មែរផ្លូវការ ត្រឹមត្រូវតាមវេយ្យាករណ៍ខ្មែរ
         - ប្រើលេខរ៉ូម៉ាំង I. II. III. IV. V. សម្រាប់ចំណងជើងផ្នែកនីមួយៗ
       `;
@@ -194,9 +191,7 @@ const MinutesGenerator: React.FC<Props> = ({ records }) => {
   };
 
   const handleDownloadWord = () => {
-    const formattedContent = result
-      .replace(/^([I|V|X]+\..*)$/gm, '<p style="font-family: \'Moul\', serif; margin-top: 15px; font-size: 12pt;"><b>$1</b></p>')
-      .replace(/\n/g, '<br/>');
+    const formattedContent = formatToWordHtml(result);
 
     const html = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>

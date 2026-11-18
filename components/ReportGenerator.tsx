@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { AttendanceRecord, ReportData } from '../types';
 import { GoogleGenAI } from "@google/genai";
 import { exportElementToPdf } from '../services/pdfExport';
+import { formatToHtml, formatToWordHtml } from '../services/textFormatter';
 
 interface Props {
   records: AttendanceRecord[];
@@ -102,13 +103,6 @@ const ReportGenerator: React.FC<Props> = ({ records }) => {
 
   const formatResult = (text: string) => {
     if (!text) return null;
-    let formatted = text;
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-gray-900">$1</span>');
-    formatted = formatted.replace(/^([I|V|X]+\..*)$/gm, '<div class="khmer-moul mt-6 mb-2 text-base text-left text-gray-900 font-bold">$1</div>');
-    formatted = formatted.replace(/^([១|២|៣|៤|៥|៦|៧|៨|៩]+\..*)$/gm, '<div class="pl-2 mt-3 mb-1 text-left font-bold text-gray-900">$1</div>');
-    formatted = formatted.replace(/^([ក-ណ]\..*)$/gm, '<div class="pl-4 mb-1 text-left font-semibold text-gray-800">$1</div>');
-    formatted = formatted.replace(/^- (.*)$/gm, '<div class="pl-6 mb-1 text-left text-gray-800"><span>- $1</span></div>');
-    
     return (
       <div 
         style={{ 
@@ -117,7 +111,7 @@ const ReportGenerator: React.FC<Props> = ({ records }) => {
           textAlign: 'left' 
         }}
         className="text-[15px] sm:text-[16px] text-gray-900 space-y-1" 
-        dangerouslySetInnerHTML={{ __html: formatted.replace(/\n\n+/g, '<br/><br/>').replace(/\n/g, '<br/>') }} 
+        dangerouslySetInnerHTML={{ __html: formatToHtml(text) }} 
       />
     );
   };
@@ -192,6 +186,7 @@ const ReportGenerator: React.FC<Props> = ({ records }) => {
         - ការវាយតម្លៃជារួមលើជោគជ័យនៃវគ្គបណ្ដុះបណ្ដាល និងការផ្សារភ្ជាប់ទៅនឹងគោលដៅអប់រំ។
 
         ចំណាំសំខាន់៖
+        - ដាច់ខាតកុំប្រើសញ្ញា Markdown ដូចជា #, ##, ###, *, **, ឬ _ ក្នុងអត្ថបទឡើយ។ សរសេរជាអក្សរធម្មតា និងក្បាលចំណុចធម្មតា (I. II. III., ១. ២. ៣., ក. ខ. គ. ឬ - )។
         - ប្រើពាក្យពេចន៍រដ្ឋបាលខ្មែរផ្លូវការ និងវេយ្យាករណ៍ត្រឹមត្រូវខ្ពស់។
         - មិនបាច់ដាក់ក្បាលទំព័រ ឬហត្ថលេខាទេ ព្រោះប្រព័ន្ធបោះពុម្ពបានរៀបចំជូនរួចរាល់ហើយ។
       `;
@@ -244,10 +239,7 @@ const ReportGenerator: React.FC<Props> = ({ records }) => {
   };
 
   const handleDownloadWord = () => {
-    const formattedContent = result
-      .replace(/^([I|V|X]+\..*)$/gm, '<p style="font-family: \'Moul\', serif; margin-top: 15px; font-size: 12pt;"><b>$1</b></p>')
-      .replace(/^([១|២|៣|៤|៥|៦|៧|៨|៩]+\..*)$/gm, '<p style="font-weight: bold; margin-top: 10px; font-size: 11pt;">$1</p>')
-      .replace(/\n/g, '<br/>');
+    const formattedContent = formatToWordHtml(result);
 
     const photosHtml = formData.photos.length > 0 ? `
       <div style="margin-top: 25px; page-break-inside: avoid;">
